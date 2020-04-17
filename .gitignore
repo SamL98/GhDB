@@ -1,0 +1,5 @@
+/binary/
+/test_scripts/
+.*.swp
+lldb/.*.swp
+ghidra/.*.swp
