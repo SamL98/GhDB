@@ -14,8 +14,11 @@ class GhDBClient(object):
     def notify_bp_created(self, bp_idx, addr):
         self.conn.send_bytes(('bp %d 0x%x' % (bp_idx, addr)).encode('utf-8'))
 
-    def notify_bp_triggered(self, addr):
+    def notify_pc_changed(self, addr):
         self.conn.send_bytes(('goto 0x%x' % addr).encode('utf-8'))
+
+    def notify_bp_triggered(self, addr):
+        self.notify_pc_changed(addr)
 
     def shutdown(self):
         self.conn.send_bytes('stop'.encode('utf-8'))
@@ -64,6 +67,14 @@ def _bp_set(debugger, result):
         client.notify_bp_created(bp_idx + 1, addr)
 
 
+def _pc_changed(debugger, result):
+    if not result.Succeeded():
+        return
+
+    addr = debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame().GetPCAddress().GetFileAddress()
+    client.notify_pc_changed(addr)
+
+
 def ghb(debugger, command, result, internal_dict):
     debugger.GetCommandInterpreter().HandleCommand('b %s' % command, result)
     _bp_set(debugger, result)
@@ -79,8 +90,20 @@ def ghbreakpoint(debugger, command, result, internal_dict):
     _bp_set(debugger, result)
 
 
+def ghs(debugger, command, result, internal_dict):
+    debugger.GetCommandInterpreter().HandleCommand('s %s' % command, result)
+    _pc_changed(debugger, result)
+
+
+def ghn(debugger, command, result, internal_dict):
+    debugger.GetCommandInterpreter().HandleCommand('n %s' % command, result)
+    _pc_changed(debugger, result)
+
+
 def __lldb_init_module(debugger, internal_dict):
     debugger.HandleCommand('command script add -f ghdb_client.ghb ghb')
     debugger.HandleCommand('command script add -f ghdb_client.ghbr ghbr')
     debugger.HandleCommand('command script add -f ghdb_client.ghbreakpoint ghbreakpoint')
+    debugger.HandleCommand('command script add -f ghdb_client.ghs ghs')
+    debugger.HandleCommand('command script add -f ghdb_client.ghn ghn')
     print('ghb locked and loaded')
