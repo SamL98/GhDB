@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
+import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.listing.Bookmark;
 
 public class GhDBServer extends GhidraScript {
@@ -37,10 +38,12 @@ public class GhDBServer extends GhidraScript {
                 }
 
                 Address newLoc = toAddr(comps[1]);
+                AddressSet addrSet = new AddressSet(newLoc);
 
                 printf("Going to %x\n", newLoc.getOffset());
 
                 setCurrentLocation(newLoc);
+                setCurrentSelection(addrSet);
             }
             else if (msg.startsWith("bp")) {
                 String[] comps = msg.split(" ");
