@@ -27,10 +27,6 @@ BP_IDX_RE = re.compile('Breakpoint \d+:')
 # Client to interact with the Ghidra-facing server.
 client = GhDBClient()
 
-# Set the absolute path to this file as an environment variable so that our breakpoint script can import
-# `client` from us. Like almost everything else in this script, it is an ugly workaround.
-os.environ['GHDB_CLIENT_PATH'] = abspath(__file__)
-
 # I wish we could just pass a function but at least we get syntax highlighting this way.
 bp_script_path = abspath(join(dirname(__file__), 'breakpoint_script.py'))
 with open(bp_script_path) as f:
