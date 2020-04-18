@@ -18,4 +18,10 @@ Run `install.sh` once.
 
 Then every time run the script `GhDBServer.java` from Ghidra. 
 
-Once in lldb, instead of running `b`, `br`, or `breakpoint`, run `ghb`, `ghbr`, or `ghbreakpoint`. All the same arguments can be provided as they are just forwarded to their corresponding lldb command.
+Once in lldb, prefix command you want to send to Ghidra with "gh". Currently supported command are:
+
+* `b -> ghb`
+* `br -> ghbr`
+* `breakpoint -> ghbreakpoint`
+* `n -> ghn`
+* `s -> ghs`
