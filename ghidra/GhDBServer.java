@@ -1,8 +1,10 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
+import ghidra.program.model.listing.Bookmark;
 
 public class GhDBServer extends GhidraScript {
 
@@ -13,6 +15,7 @@ public class GhDBServer extends GhidraScript {
         println("Accepted connection");
 
         DataInputStream dis = new DataInputStream(s.getInputStream());
+        ArrayList bookmarks = new ArrayList<Bookmark>();
 
         while (true) {
             String msg;
@@ -36,6 +39,7 @@ public class GhDBServer extends GhidraScript {
                 Address newLoc = toAddr(comps[1]);
 
                 printf("Going to %x\n", newLoc.getOffset());
+
                 setCurrentLocation(newLoc);
             }
             else if (msg.startsWith("bp")) {
@@ -50,12 +54,20 @@ public class GhDBServer extends GhidraScript {
                 Address bpAddr = toAddr(comps[2]);
 
                 printf("Breakpoint %d created at %x\n", bpIdx, bpAddr.getOffset());
-                createBookmark(bpAddr, "breakpoints", String.format("Breakpoint %d", bpIdx));
+
+                Bookmark bookmark = createBookmark(bpAddr, "breakpoints", String.format("Breakpoint %d", bpIdx));
+                bookmarks.add(bookmark);
             }
             else if (msg.equals("stop")) {
                 println("Shutting down server");
                 break;
             }
+        }
+
+        // Remove all of the bookmarks created and close the socket
+
+        for (int i = 0; i < bookmarks.size(); i++) {
+            removeBookmark((Bookmark)bookmarks.get(i));
         }
 
         ss.close();

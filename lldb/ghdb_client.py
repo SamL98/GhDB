@@ -1,8 +1,10 @@
 import atexit
 import lldb
+import os
 import re
 
 from multiprocessing.connection import Client
+from os.path import abspath, dirname, join
 
 class GhDBClient(object):
     def __init__(self):
@@ -25,12 +27,14 @@ BP_IDX_RE = re.compile('Breakpoint \d+:')
 # Client to interact with the Ghidra-facing server.
 client = GhDBClient()
 
-# This is really gross. There's got to be a better way.
-bp_fn_str = '''\
-global client \n\
-addr = bp_loc.GetAddress().GetfilesAddress() \n\
-client.notify_bp_triggered(addr)
-'''
+# Set the absolute path to this file as an environment variable so that our breakpoint script can import
+# `client` from us. Like almost everything else in this script, it is an ugly workaround.
+os.environ['GHDB_CLIENT_PATH'] = abspath(__file__)
+
+# I wish we could just pass a function but at least we get syntax highlighting this way.
+bp_script_path = abspath(join(dirname(__file__), 'breakpoint_script.py'))
+with open(bp_script_path) as f:
+    bp_script = f.read()
 
 
 # TODO: Add support for deleting and enabling/disabling breakpoints.
@@ -52,13 +56,13 @@ def _bp_set(debugger, result):
     bp = debugger.GetSelectedTarget().GetBreakpointAtIndex(bp_idx)
 
     # Set our function to run when the breakpoint is triggered.
-    bp.SetScriptCallbackBody(bp_fn_str)
+    bp.SetScriptCallbackBody(bp_script)
 
     num_locations = bp.GetNumLocations()
 
     for loc_idx in range(num_locations):
         loc = bp.GetLocationAtIndex(loc_idx)
-        addr = loc.GetAddress().GetFileAddress()
+        addr = loc.GetAddress().GetFileAddress() # TODO: Figure out how to deal with different modules
 
         # Let Ghidra know every address associated with our breakpoint.
         client.notify_bp_created(bp_idx + 1, addr)
