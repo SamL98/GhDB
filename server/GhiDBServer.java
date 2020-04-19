@@ -7,7 +7,7 @@ import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.listing.Bookmark;
 
-public class GhDBServer extends GhidraScript {
+public class GhiDBServer extends GhidraScript {
 
     public void run() throws Exception {
         ServerSocket ss = new ServerSocket(13377);

@@ -1,6 +1,6 @@
-# GhDB (The Ghidra Debugger)
+# GhiDB (The Ghidra Debugger)
 
-This project is meant to provide a thin connecting layer between Ghidra and LLDB.
+This project is meant to provide a thin connecting layer between Ghidra and LLDB. It's currently basically just a PoC.
 
 Features include:
     
@@ -16,12 +16,16 @@ Features on the way:
 
 Run `install.sh` once. 
 
-Then every time run the script `GhDBServer.java` from Ghidra. 
+Then every time you want to sync the debugger with Ghidra, run the script `GhiDBServer.java` from Ghidra and then run the command `ghstart` in LLDB.
 
-Once in lldb, prefix command you want to send to Ghidra with "gh". Currently supported command are:
+NOTE: When running `ghstart`, the image you are debugging should already be loaded, i.e. a common pattern might be:
+
+1. `b main`
+2. `r`
+3. `ghstart`
+
+Once in lldb, prefix breakpoint commands you want to send to Ghidra with "gh". Currently supported command are:
 
 * `b -> ghb`
 * `br -> ghbr`
 * `breakpoint -> ghbreakpoint`
-* `n -> ghn`
-* `s -> ghs`
