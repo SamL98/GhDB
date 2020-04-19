@@ -40,7 +40,7 @@ class ListenerThread(threading.Thread):
         super().__init__()
         self.listener = listener
         self.process = process
-        self.last_pc = frame.GetPC()
+        self.last_pc = None
         self.module_uuid = frame.GetModule().GetUUIDString()
         self.frame_id = frame.GetFrameID()
         self.should_exit = False
@@ -51,7 +51,7 @@ class ListenerThread(threading.Thread):
     def run(self):
         global client
 
-        while self.should_exit:
+        while not self.should_exit:
             # Get an event every second.
             event = lldb.SBEvent()
             self.listener.WaitForEvent(1, event)
@@ -77,7 +77,7 @@ class ListenerThread(threading.Thread):
             # If the PC hasn't changed, the user just hasn't continued from this breakpoint.
             # Wait until they do so.
             curr_pc = curr_frame.GetPC()
-            if curr_pc == self.last_pc:
+            if self.last_pc is not None and curr_pc == self.last_pc:
                 continue
 
             # Tell Ghidra we stopped at a new location.
@@ -89,12 +89,6 @@ class ListenerThread(threading.Thread):
 
 listener_thread = None
         
-
-# I wish we could just pass a function but at least we get syntax highlighting this way.
-bp_script_path = abspath(join(dirname(__file__), 'breakpoint_script.py'))
-with open(bp_script_path) as f:
-    bp_script = f.read()
-
 
 # TODO: Add support for deleting and enabling/disabling breakpoints.
 def _bp_set(debugger, result):
