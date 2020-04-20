@@ -24,7 +24,7 @@ NOTE: When running `ghstart`, the image you are debugging should already be load
 2. `r`
 3. `ghstart`
 
-Once in lldb, prefix breakpoint commands you want to send to Ghidra with "gh". Currently supported command are:
+Once in `ghstart` has been run, prefix breakpoint commands you want to send to Ghidra with "gh". Currently supported command are:
 
 * `b -> ghb`
 * `br -> ghbr`
