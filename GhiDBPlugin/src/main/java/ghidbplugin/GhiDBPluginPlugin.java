@@ -16,8 +16,10 @@
 package ghidbplugin;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 
 import docking.ActionContext;
 import docking.ComponentProvider;
@@ -37,7 +39,6 @@ import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
 import ghidra.program.flatapi.FlatProgramAPI;
 import ghidra.util.HelpLocation;
-import ghidra.util.Msg;
 import java.util.HashMap;
 import java.util.Map;
 import docking.widgets.table.GTable;
@@ -119,7 +120,7 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 
 	public void setStatusMsg(String msg) {
 		System.out.println(msg);
-		provider.setStatus(msg);
+		tool.setStatusInfo(msg);
 	}
 	
 	public void bpCreated(int bpID, String addrString) {
@@ -134,7 +135,8 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 		
         breakpoints.put(bpID, bookmark);
         
-        provider.createBreakpoint(bpID, "", addr);
+        // Create a breakpoint row in the GUI
+        provider.createBreakpoint(bpID, "Breakpoint " + bpID, addr);
 	}
 	
 	public void bpHit(String addrString) {
@@ -174,8 +176,6 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 
 		private JPanel panel;
 		private DockingAction action;
-		
-		private JTextArea statusArea;
 		private GTable bpTable;
 
 		public MyProvider(Plugin plugin, String owner) {
@@ -187,40 +187,43 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 		// Customize GUI
 		private void buildPanel() {
 			panel = new JPanel(new BorderLayout());
+			panel.setPreferredSize(new Dimension(400, 200));
+			
+			DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+			centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 			
 			bpTable = new GTable(new BreakpointTableModel());
-			JScrollPane scrollPane = new JScrollPane(bpTable);
-			panel.add(scrollPane);
 			
-			statusArea = new JTextArea(1, 25);
-			statusArea.setEditable(false);
-			statusArea.setText("GhiDB server not started");
-			panel.add(statusArea);
+			bpTable.getColumn("Enabled").setWidth(5);
+			
+			bpTable.getColumn("ID").setWidth(5);
+			bpTable.getColumn("ID").setCellRenderer(centerRenderer);
+			
+			JScrollPane scrollPane = new JScrollPane(bpTable);
+			panel.add(scrollPane, BorderLayout.PAGE_START);
 			
 			setVisible(true);
 		}
 
 		// TODO: Customize actions
 		private void createActions() {
-			action = new DockingAction("My Action", getName()) {
+			action = new DockingAction("Create Breakpoint", getName()) {
 				@Override
 				public void actionPerformed(ActionContext context) {
-					Msg.showInfo(getClass(), panel, "Custom Action", "Hello!");
+					//JPanel panel = new JPanel(new BorderLayout());
 				}
 			};
 			action.setToolBarData(new ToolBarData(Icons.ADD_ICON, null));
 			action.setEnabled(true);
 			action.markHelpUnnecessary();
 			dockingTool.addLocalAction(this, action);
+			
+			dockingTool.setStatusInfo("GhiDB not yet started");
 		}
 
 		@Override
 		public JComponent getComponent() {
 			return panel;
-		}
-		
-		public void setStatus(String status) {
-			statusArea.setText(status);
 		}
 		
 		private BreakpointTableModel getTableModel() {
@@ -229,6 +232,10 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 		
 		public void createBreakpoint(int bpID, String bpName, Address bpAddr) {
 			getTableModel().addRow(bpID, bpName, bpAddr);
+			refresh();
+		}
+		
+		public void refresh() {
 			panel.revalidate();
 			panel.repaint();
 		}

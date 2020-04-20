@@ -50,7 +50,7 @@ public class GhiDBServer extends Thread {
                 msg = dis.readUTF();
             }
             catch (IOException e) {
-                owner.setStatusMsg("Error while reading from socket " + e);
+                owner.setStatusMsg("Error while reading from socket. Client must've disconnected");
                 break;
             }
 
