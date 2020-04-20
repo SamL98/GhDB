@@ -17,6 +17,8 @@ package ghidbplugin;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -144,14 +146,11 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 			return;
 		
 		Address addr = flatProgram.toAddr(addrString);
-		
-		ProgramLocation location = new ProgramLocation(currentProgram, addr);
-		PluginEvent ev = new ProgramLocationPluginEvent(null, location, currentProgram);
-		tool.firePluginEvent(ev);
+		goTo(addr);
 		
 		AddressSet addrSet = new AddressSet(addr);
 		ProgramSelection sel = new ProgramSelection(addrSet);
-		ev = new ProgramSelectionPluginEvent(getClass().getName(), sel, currentProgram);
+		PluginEvent ev = new ProgramSelectionPluginEvent(getClass().getName(), sel, currentProgram);
 		tool.firePluginEvent(ev);
 	}
 	
@@ -174,12 +173,14 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 	// TODO: If provider is desired, it is recommended to move it to its own file
 	private static class MyProvider extends ComponentProvider {
 
+		private GhiDBPluginPlugin plugin;
 		private JPanel panel;
 		private DockingAction action;
 		private GTable bpTable;
 
 		public MyProvider(Plugin plugin, String owner) {
 			super(plugin.getTool(), owner, owner);
+			this.plugin = (GhiDBPluginPlugin)plugin;
 			buildPanel();
 			createActions();
 		}
@@ -192,12 +193,22 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 			DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 			centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 			
-			bpTable = new GTable(new BreakpointTableModel());
+			BreakpointTableModel bpTableModel = new BreakpointTableModel();
+			bpTable = new GTable(bpTableModel);
 			
 			bpTable.getColumn("Enabled").setWidth(5);
 			
 			bpTable.getColumn("ID").setWidth(5);
 			bpTable.getColumn("ID").setCellRenderer(centerRenderer);
+			
+			bpTable.addMouseListener(new MouseAdapter() {
+				public void mousePressed(MouseEvent e) {
+					if (e.getClickCount() == 2 && bpTable.getSelectedRow() != -1) {
+						Address bpAddr = (Address)bpTableModel.getValueAt(bpTable.getSelectedRow(), 3);
+						plugin.goTo(bpAddr);
+					}
+				}
+			});
 			
 			JScrollPane scrollPane = new JScrollPane(bpTable);
 			panel.add(scrollPane, BorderLayout.PAGE_START);
