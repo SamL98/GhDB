@@ -37,7 +37,6 @@ import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.listing.Bookmark;
 import ghidra.program.model.listing.Program;
-import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
 import ghidra.program.flatapi.FlatProgramAPI;
 import ghidra.util.HelpLocation;
@@ -138,7 +137,11 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
         breakpoints.put(bpID, bookmark);
         
         // Create a breakpoint row in the GUI
-        provider.createBreakpoint(bpID, "Breakpoint " + bpID, addr);
+        provider.createBreakpoint(bpID, "Breakpoint " + bpID, addr, true);
+	}
+	
+	public void createBp(Breakpoint bp) {
+		
 	}
 	
 	public void bpHit(String addrString) {
@@ -150,6 +153,7 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 		
 		AddressSet addrSet = new AddressSet(addr);
 		ProgramSelection sel = new ProgramSelection(addrSet);
+		
 		PluginEvent ev = new ProgramSelectionPluginEvent(getClass().getName(), sel, currentProgram);
 		tool.firePluginEvent(ev);
 	}
@@ -161,6 +165,14 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 		int transactionID = program.startTransaction("Create bookmark");
 		flatProgram.removeBookmark(breakpoints.get(bpID));
 		program.endTransaction(transactionID, true);
+	}
+	
+	public void deleteBp(Breakpoint bp) {
+		serverThread.deleteBp(bp);
+	}
+	
+	public void setBpEnabled(Breakpoint bp) {
+		serverThread.setBpEnabled(bp);
 	}
 	
 	public void clearBps() {
@@ -193,7 +205,7 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 			DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 			centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 			
-			BreakpointTableModel bpTableModel = new BreakpointTableModel();
+			BreakpointTableModel bpTableModel = new BreakpointTableModel(plugin);
 			bpTable = new GTable(bpTableModel);
 			
 			bpTable.getColumn("Enabled").setWidth(5);
@@ -237,12 +249,12 @@ public class GhiDBPluginPlugin extends ProgramPlugin {
 			return panel;
 		}
 		
-		private BreakpointTableModel getTableModel() {
+		public BreakpointTableModel getTableModel() {
 			return (BreakpointTableModel)bpTable.getModel();
 		}
 		
-		public void createBreakpoint(int bpID, String bpName, Address bpAddr) {
-			getTableModel().addRow(bpID, bpName, bpAddr);
+		public void createBreakpoint(int bpID, String bpName, Address bpAddr, boolean fromLLDB) {
+			getTableModel().addRow(bpID, bpName, bpAddr, fromLLDB);
 			refresh();
 		}
 		

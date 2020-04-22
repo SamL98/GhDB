@@ -7,13 +7,19 @@ import java.lang.Thread;
 public class GhiDBServer extends Thread {
 	
 	private GhiDBPluginPlugin owner;
-	boolean shouldExit;
-	boolean started;
+	private boolean shouldExit;
+	private boolean started;
+	
+	public Object socketLock;
+	private DataOutputStream dos;
 	
 	public GhiDBServer(GhiDBPluginPlugin owner) {		
 		this.owner = owner;
-		this.shouldExit = false;
-		this.started = false;
+		shouldExit = false;
+		started = false;
+		
+		socketLock = new Object();
+		dos = null;
 	}
 	
 	public void exit() {
@@ -24,17 +30,61 @@ public class GhiDBServer extends Thread {
 		return started;
 	}
 	
+	public void setBpEnabled(Breakpoint bp) {
+		if (dos == null)
+			return;
+		
+		String cmd;
+		
+		if (bp.isEnabled())
+			cmd = "br en ";
+		else
+			cmd = "br dis ";
+		
+		cmd += bp.getId();
+		
+		try {
+			synchronized(socketLock) {
+				dos.writeUTF(cmd);
+				dos.flush();
+			}
+		}
+		catch (IOException e) {
+			owner.setStatusMsg("Error writing to socket: " + e);
+		}
+	}
+	
+	public void deleteBp(Breakpoint bp) {
+		if (dos == null)
+			return;
+		
+		String cmd = "br del " + bp.getId();
+		
+		try {
+			synchronized(socketLock) {
+				dos.writeUTF(cmd);
+				dos.flush();
+			}
+		}
+		catch (IOException e) {
+			owner.setStatusMsg("Error writing to socket: " + e);
+		}
+	}
+	
 	public void run() {
 		owner.setStatusMsg("Starting GhiDB server");
 		started = true;
 		
 		ServerSocket ss;
 		DataInputStream dis;
+		String msg;
 		
 		try {
 			ss = new ServerSocket(13377);
 			Socket s = ss.accept();
+			
 			dis = new DataInputStream(s.getInputStream());
+			dos = new DataOutputStream(s.getOutputStream());
 		}
 		catch (IOException e) {
 			owner.setStatusMsg("Error creating socket/accepting connection: " + e);
@@ -44,10 +94,14 @@ public class GhiDBServer extends Thread {
         owner.setStatusMsg("Accepted connection");
 
         while (!this.shouldExit) {
-            String msg;
-
             try {
-                msg = dis.readUTF();
+            	// I assume there's a better way than just spinning? Java people, help me out here.
+                if (dis.available() == 0)
+                	continue;
+                
+            	synchronized(socketLock) {
+            		msg = dis.readUTF();
+            	}
             }
             catch (IOException e) {
                 owner.setStatusMsg("Error while reading from socket. Client must've disconnected");
@@ -87,6 +141,10 @@ public class GhiDBServer extends Thread {
         owner.clearBps();
 
         try {
+        	if (dos != null)
+        		dos.close();
+        	
+        	dis.close();
         	ss.close();
         }
         catch (IOException e) {
