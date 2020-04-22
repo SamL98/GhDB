@@ -2,6 +2,7 @@ package ghidbplugin;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.lang.Thread;
 
 public class GhiDBServer extends Thread {
@@ -10,7 +11,6 @@ public class GhiDBServer extends Thread {
 	private boolean shouldExit;
 	private boolean started;
 	
-	public Object socketLock;
 	private DataOutputStream dos;
 	
 	public GhiDBServer(GhiDBPluginPlugin owner) {		
@@ -18,7 +18,6 @@ public class GhiDBServer extends Thread {
 		shouldExit = false;
 		started = false;
 		
-		socketLock = new Object();
 		dos = null;
 	}
 	
@@ -44,10 +43,8 @@ public class GhiDBServer extends Thread {
 		cmd += bp.getId();
 		
 		try {
-			synchronized(socketLock) {
-				dos.writeUTF(cmd);
-				dos.flush();
-			}
+			dos.writeUTF(cmd);
+			dos.flush();
 		}
 		catch (IOException e) {
 			owner.setStatusMsg("Error writing to socket: " + e);
@@ -61,10 +58,8 @@ public class GhiDBServer extends Thread {
 		String cmd = "br del " + bp.getId();
 		
 		try {
-			synchronized(socketLock) {
-				dos.writeUTF(cmd);
-				dos.flush();
-			}
+			dos.writeUTF(cmd);
+			dos.flush();
 		}
 		catch (IOException e) {
 			owner.setStatusMsg("Error writing to socket: " + e);
@@ -77,6 +72,8 @@ public class GhiDBServer extends Thread {
 		
 		ServerSocket ss;
 		DataInputStream dis;
+		
+		short msgLen;
 		String msg;
 		
 		try {
@@ -96,12 +93,16 @@ public class GhiDBServer extends Thread {
         while (!this.shouldExit) {
             try {
             	// I assume there's a better way than just spinning? Java people, help me out here.
-                if (dis.available() == 0)
+                if (dis.available() < 2)
                 	continue;
                 
-            	synchronized(socketLock) {
-            		msg = dis.readUTF();
-            	}
+            	msgLen = dis.readShort();
+            	
+            	if (dis.available() < msgLen)
+            		continue;
+            	
+            	msg = new String(dis.readNBytes(msgLen), StandardCharsets.UTF_8);
+            	System.out.printf("Received: %s\n", msg);
             }
             catch (IOException e) {
                 owner.setStatusMsg("Error while reading from socket. Client must've disconnected");

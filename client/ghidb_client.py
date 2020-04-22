@@ -41,9 +41,7 @@ def _bp_set(debugger, result):
         addr = loc.GetAddress().GetFileAddress()  
 
         # Tell the thread to let Ghidra know every address associated with our breakpoint.
-        client.conn_lock.acquire()
         client.notify_bp_created(bp_idx + 1, addr)
-        client.conn_lock.release()
 
 
 def ghb(debugger, command, result, internal_dict):
